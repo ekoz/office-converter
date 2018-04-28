@@ -1,4 +1,4 @@
-package com.eastrobot.converter;
+package com.eastrobot.converter.word;
 
 /**
  * 定义word解析的常量

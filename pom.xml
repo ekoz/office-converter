@@ -42,7 +42,6 @@
             <version>2.6</version>
         </dependency>
 
-
         <!--操作DOC、PPT、VSD-->
         <dependency>
             <groupId>org.apache.poi</groupId>
@@ -61,27 +60,6 @@
             <artifactId>poi-ooxml</artifactId>
             <version>3.14</version>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/net.sf.jacob-project/jacob -->
-        <!--<dependency>-->
-            <!--<groupId>net.sf.jacob-project</groupId>-->
-            <!--<artifactId>jacob</artifactId>-->
-            <!--<version>1.18</version>-->
-        <!--</dependency>-->
-        <dependency>
-            <groupId>net.sf.jacob-project</groupId>
-            <artifactId>jacob</artifactId>
-            <version>1.18</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/src/main/resources/jacob.jar</systemPath>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.docx4j/docx4j -->
-        <dependency>
-            <groupId>org.docx4j</groupId>
-            <artifactId>docx4j</artifactId>
-            <version>3.3.7</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml-schemas</artifactId>
@@ -92,19 +70,12 @@
             <artifactId>poi-ooxml-schemas</artifactId>
             <version>3.14</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/net.arnx/wmf2svg -->
+        <!-- https://mvnrepository.com/artifact/dom4j/dom4j -->
         <dependency>
-            <groupId>net.arnx</groupId>
-            <artifactId>wmf2svg</artifactId>
-            <version>0.9.8</version>
+            <groupId>dom4j</groupId>
+            <artifactId>dom4j</artifactId>
+            <version>1.6.1</version>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.apache.poi/ooxml-schemas -->
-        <!--<dependency>-->
-            <!--<groupId>org.apache.poi</groupId>-->
-            <!--<artifactId>ooxml-schemas</artifactId>-->
-            <!--<version>1.1</version>-->
-        <!--</dependency>-->
 
     </dependencies>
 
@@ -116,6 +87,5 @@
             </plugin>
         </plugins>
     </build>
-
 
 </project>
