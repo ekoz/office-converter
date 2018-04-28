@@ -3,12 +3,11 @@ package com.eastrobot.converter;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.model.PicturesTable;
+import org.apache.poi.hwpf.model.StyleDescription;
+import org.apache.poi.hwpf.model.StyleSheet;
 import org.apache.poi.hwpf.usermodel.*;
 
 import java.io.*;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * WordConverter office word转html (doc)
@@ -39,17 +38,9 @@ public class WordConverter {
      */
     private PicturesTable picturesTable;
     /**
-     * 表格迭代器
+     * 全文构建器
      */
-    private TableIterator tableIterator;
-    /**
-     * 记录表格起始偏移
-     */
-    private int tbStartOffset[];
-    /**
-     * 记录表格
-     */
-    private List<Table> tableList;
+    private StringBuilder htmlBuilder;
 
     public WordConverter(String wordPath) {
         this.wordPath = wordPath;
@@ -62,13 +53,11 @@ public class WordConverter {
         this.doc = new HWPFDocument(new FileInputStream(wordPath));
         this.range = doc.getRange();
         this.picturesTable = doc.getPicturesTable();
-        this.tableIterator = new TableIterator(range);
         // 确保路径一定存在
         new File(outputDirectory).mkdirs();
         new File(outputImageDirectory).mkdirs();
 
-        this.tableList = new LinkedList<>();
-        this.tbStartOffset = new int[100];
+        this.htmlBuilder = new StringBuilder(2048);
     }
 
     /**
@@ -79,123 +68,117 @@ public class WordConverter {
                 + doc.getSummaryInformation().getTitle()
                 + "</title></head><body><div style='margin:60px;text-align:center;'><div style='width:620px;" +
                 "text-align:left;line-height:24px;'>";
-        StringBuilder htmlBuilder = new StringBuilder(htmlHead);
-        StringBuilder scanBuilder = new StringBuilder();
-
-        // 1. 预处理表格 找到其在文档中的相对位置
-        boolean hasTable = false;
-        int tablePos = 0;
-
-        while (tableIterator.hasNext()) {
-            Table table = tableIterator.next();
-            tbStartOffset[tablePos++] = table.getStartOffset();
-            tableList.add(table);
-            hasTable = true;
-        }
 
         // 2, 初始化目录处理器
         TocHandler tocHandler = new TocHandler(doc);
         tocHandler.init();
-        System.out.println(doc.characterLength());
 
-        int characterSize = 0;
+
+        int page = 1;
+        int currentTableLevel = Integer.MIN_VALUE;
         // 3. 开始处理每个字符
-        tablePos = 0;
         for (int i = 0; i < range.numSections(); i++) {
             Section section = range.getSection(i);
-            for (int j = 0; j < section.numParagraphs(); j++) {
-                Paragraph paragraph = section.getParagraph(j);
-                // 得到段落的对齐方式 居中的不成为目录和标题
-                // int justification = paragraph.getJustification();
-                // if (justification == WordConstant.CENTER_ALIGN) {
-                //     htmlBuilder.append("<center>");
-                //     handleCharacter(paragraph, hasTable, tablePos, htmlBuilder, scanBuilder);
-                //     htmlBuilder.append("</center>");
-                // } else {
-                boolean isToc = tocHandler.convert(paragraph, htmlBuilder);
-                if (!isToc) {
-                    handleCharacter(paragraph, hasTable, tablePos, htmlBuilder, scanBuilder);
-                }
-                // }
-            }
+            processParagraphs(section, tocHandler, currentTableLevel, page);
         }
 
         StringBuilder tocBuilder = tocHandler.getToc(true);
         writeFile(tocBuilder.append(htmlBuilder).toString());
     }
 
+    private void processParagraphs(Section section, TocHandler tocHandler, int currentTableLevel, int page) throws
+            Exception {
+        StyleSheet docStyleSheet = doc.getStyleSheet();
+        int paragraphs = range.numParagraphs();
+        for (int p = 0; p < paragraphs; p++) {
+            Paragraph paragraph = section.getParagraph(p);
+            if (paragraph.isInTable() && paragraph.getTableLevel() != currentTableLevel) {
 
-    private void handleCharacter(Paragraph paragraph, boolean hasTable, int tablePos, StringBuilder htmlBuilder,
-                                 StringBuilder scanBuilder) throws Exception {
-        for (int k = 0; k < paragraph.numCharacterRuns(); k++) {
-            if (k == 0) {
+                Table table = section.getTable(paragraph);
+                String tableHtml = tableToHtml(table);
+                htmlBuilder.append(tableHtml);
+
+                p += table.numParagraphs();
+                p--;
                 continue;
             }
-            CharacterRun c1 = paragraph.getCharacterRun(k - 1);
-            // 处理表格
-            if (hasTable) {
-                if (k == tbStartOffset[tablePos]) {
-                    Table table = tableList.get(tablePos);
-                    htmlBuilder.append(scanBuilder).append(tableToHtml(table));
-                    k = table.getEndOffset() - 1;
-                    tablePos++;
-                    scanBuilder.setLength(0);
-                }
+
+            if (paragraph.text().equals("\u000c")) {
+                htmlBuilder.append("<center>第").append(page++).append("页</center>");
             }
-            // 图片
-            if (picturesTable.hasPicture(c1)) {
-                htmlBuilder.append(scanBuilder).append(pictureToHtml(picturesTable, c1));
-                scanBuilder.setLength(0);
-            } else {//正常文本
-                CharacterRun c2 = paragraph.getCharacterRun(k);
-                char c = c1.text().charAt(0);
 
-                if (c == 13) {// 回车
-                    scanBuilder.append("<br/>");
-                } else if (c == 32) {// 空格符
-                    scanBuilder.append(" ");
-                } else if (c == 9) {     //水平制表符
-                    scanBuilder.append("    ");
+            // 段落的样式
+            StyleDescription style = docStyleSheet.getStyleDescription(paragraph.getStyleIndex());
+            String styleName = style.getName();
+            // 段落的对齐方式 居中的不成为目录
+            if (WordConstant.CENTER_ALIGN == paragraph.getJustification()) {
+                htmlBuilder.append("<center>");
+                if (styleName.contains("标题")) {
+                    htmlBuilder.append("<h3>");
                 }
-
-                // 比较前后2个字符是否具有相同的格式
-                boolean isSame = c1.isBold() == c2.isBold() && c1.isItalic() == c2.isItalic()
-                        && c1.getFontName().equals(c2.getFontName()) && c1.getFontSize() ==
-                        c2.getFontSize();
-                if (isSame) {
-                    scanBuilder.append(c1.text());
-                } else {
-                    StringBuilder fontStyleBuilder = new StringBuilder("<span style=\"font-family:")
-                            .append(c1.getFontName()).append(";font-size:")
-                            .append(c1.getFontSize() / 2).append("pt;");
-                    if (c1.isBold())
-                        fontStyleBuilder.append("font-weight:bold;");
-                    if (c1.isItalic())
-                        fontStyleBuilder.append("font-style:italic;");
-                    if (c1.isStrikeThrough())
-                        fontStyleBuilder.append("text-decoration:line-through;");
-
-                    int fontColor = c1.getIco24();
-                    int[] rgb = new int[3];
-                    if (fontColor != -1) {
-                        rgb[0] = (fontColor >> 0) & 0xff; // red;
-                        rgb[1] = (fontColor >> 8) & 0xff; // green
-                        rgb[2] = (fontColor >> 16) & 0xff; // blue
-                    }
-                    fontStyleBuilder.append("color: rgb(").append(rgb[0]).append(",").append(rgb[1])
-                            .append(",")
-                            .append(rgb[2]).append(");");
-                    htmlBuilder.append(fontStyleBuilder).append("\">").append(scanBuilder).append(c1.text())
-                            .append("</span>");
-                    //文字段
-                    scanBuilder.setLength(0);
+                processNoTableCharacter(paragraph);
+                htmlBuilder.append("<br/>");
+                if (styleName.contains("标题")) {
+                    htmlBuilder.append("</h3>");
+                }
+                htmlBuilder.append("</center>");
+            } else {
+                boolean isToc = tocHandler.convert(paragraph, htmlBuilder, styleName);
+                if (!isToc) {
+                    processNoTableCharacter(paragraph);
+                    htmlBuilder.append("<br/>");
                 }
             }
         }
     }
 
     /**
-     * 遍历生成表格
+     * 处理非表格外的内容
+     */
+    private void processNoTableCharacter(Paragraph paragraph) throws Exception {
+        int num = paragraph.numCharacterRuns();
+        for (int i = 0; i < num; i++) {
+            CharacterRun c = paragraph.getCharacterRun(i);
+            // 图片
+            if (picturesTable.hasPicture(c)) {
+                htmlBuilder.append(pictureToHtml(picturesTable, c));
+            } else {//正常文本
+                String characterStyle = handleCharacterStyle(c);
+                htmlBuilder.append(characterStyle);
+            }
+        }
+    }
+
+    /**
+     * 处理字体的样式
+     */
+    private String handleCharacterStyle(CharacterRun c) {
+        StringBuilder fontStyleBuilder = new StringBuilder("<span style=\"font-family:")
+                .append(c.getFontName()).append(";font-size:")
+                .append(c.getFontSize() / 2).append("pt;");
+        if (c.isBold())
+            fontStyleBuilder.append("font-weight:bold;");
+        if (c.isItalic())
+            fontStyleBuilder.append("font-style:italic;");
+        if (c.isStrikeThrough())
+            fontStyleBuilder.append("text-decoration:line-through;");
+
+        int fontColor = c.getIco24();
+        int[] rgb = new int[3];
+        if (fontColor != -1) {
+            rgb[0] = (fontColor >> 0) & 0xff; // red;
+            rgb[1] = (fontColor >> 8) & 0xff; // green
+            rgb[2] = (fontColor >> 16) & 0xff; // blue
+        }
+        fontStyleBuilder.append("color: rgb(").append(rgb[0]).append(",").append(rgb[1])
+                .append(",")
+                .append(rgb[2]).append(");").append("\">").append(c.text()).append("</span>");
+
+        return fontStyleBuilder.toString();
+    }
+
+    /**
+     * 生成表格html
      */
     private String tableToHtml(Table table) {
         StringBuilder tableBuilder = new StringBuilder("<table border='1' cellpadding='0' cellspacing='0'>");
@@ -244,11 +227,9 @@ public class WordConverter {
         }
         String style = " style='height:" + picHeight + "px;width:" + picWidth + "px'";
 
-        String imageId = UUID.randomUUID().toString();
-        String originName = pic.suggestFullFileName();
-        String newImageName = outputImageDirectory + imageId + "." + FilenameUtils.getExtension(originName);
-        pic.writeImageContent(new FileOutputStream(newImageName));
-        pictureBuilder.append("<img ").append(style).append(" src=\"").append(newImageName).append("\"/>");
+        String originFullNameName = outputImageDirectory + pic.suggestFullFileName();
+        pic.writeImageContent(new FileOutputStream(originFullNameName));
+        pictureBuilder.append("<img ").append(style).append(" src=\"").append(originFullNameName).append("\"/>");
         if (pic.getWidth() > 450) {
             pictureBuilder.append("<br/>");
         }

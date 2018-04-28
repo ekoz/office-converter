@@ -12,7 +12,7 @@ public interface WordConstant {
      */
     Integer TABLE_CAPACITY = 100;
     /**
-     * 文字段落的样式 对于标题而言 用正则判断
+     * 文字段落的样式
      */
     String STYLE_TEXT = "正文";
     String STYLE_COVER_TITLE = "封面小标题";
@@ -26,4 +26,9 @@ public interface WordConstant {
     int CENTER_ALIGN = 1;
     int RIGHT_ALIGN = 2;
     int JUSTIFIED = 3;
+
+    // 转换精度
+    int HIGH_PRECISION = 1;
+    int MIDDLE_PRECISION = 2;
+    int LOW_PRECISION = 3;
 }
