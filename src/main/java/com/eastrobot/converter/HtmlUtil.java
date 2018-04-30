@@ -22,7 +22,9 @@ public class HtmlUtil {
      * 设置编码
      */
     public static void charset(Element head) {
-        head.addElement("meta").addAttribute("content", "text/html; charset=utf-8");
+        head.addElement("meta")
+                .addAttribute("http-equiv", "Content-Type")
+                .addAttribute("content", "text/html; charset=utf-8");
     }
 
     /**

@@ -42,7 +42,7 @@ public class TocHandler {
         this.headNum = new int[headLevel];
         this.headList = new ArrayList<>(Arrays.asList("H1", "H2", "H3", "H4", "H5", "H6"));
         this.mainTextTitleList = new ArrayList<>(Arrays.asList("标题 1", "标题 2", "标题 3", "标题 4", "标题 5", "标题 6"));
-        tocElement.addAttribute("style", "position:fixed;right:0px; top:-20px;margin-top:50px;border:1px solid #000");
+        tocElement.addAttribute("style", "position:fixed;right:0px;margin-top:50px;border:1px solid #000;overflow-y:auto;height:90%;width:25%");
     }
 
     public Element getToc(boolean hasConvertedOver) {
@@ -57,7 +57,7 @@ public class TocHandler {
      * 给我一个段落 我来判断是否是标题段落或者是目录,
      * 如果是目录我会保存目录html结构,并在正文中创建锚点 <=(≖ ‿ ≖)✧
      *
-     * @return 是否是目录
+     * @return 是否是目录段落结构
      */
     public boolean convert(Paragraph paragraph, Element mainDiv, String styleName) {
         // 第一种是没有生成目录 但是文章中有标题结构 这样就直接去找对应的标题级别
@@ -98,7 +98,9 @@ public class TocHandler {
 
             mainDiv.addElement("span").addAttribute("id", key)
                     .addAttribute("style", "font-family:Times New Roman;" +
-                            "font-size:" + fontSize + ";font-weight:bold;").addText(headId + text);
+                            "font-size:" + fontSize + ";font-weight:bold;" +
+                            "padding-left:" + (position > 0 ? 30 : 0) + "px").addText(headId + text);
+            mainDiv.addElement("br");
             // 当前级别后续的子级别重置
             for (int i = position + 1; i < headLevel; i++) {
                 headNum[i] = 0;

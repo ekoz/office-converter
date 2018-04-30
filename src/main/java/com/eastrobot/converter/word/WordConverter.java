@@ -93,7 +93,7 @@ public class WordConverter {
     private void processParagraphs(Element mainDiv, Section section, TocHandler tocHandler, int currentTableLevel)
             throws Exception {
         StyleSheet docStyleSheet = doc.getStyleSheet();
-        int paragraphs = range.numParagraphs();
+        int paragraphs = section.numParagraphs();
         for (int p = 0; p < paragraphs; p++) {
             Paragraph paragraph = section.getParagraph(p);
             StyleDescription style = docStyleSheet.getStyleDescription(paragraph.getStyleIndex());
@@ -115,8 +115,12 @@ public class WordConverter {
                 continue;
             }
 
-            // 段落的对齐方式 居中的不成为目录
+            // 段落的对齐方式 居中的不成为目录结构中的内容
             if (WordConstant.CENTER_ALIGN == paragraph.getJustification()) {
+                // 跳过目录两个字的段
+                if (paragraph.text().trim().equals(WordConstant.STYLE_TOC)) {
+                    continue;
+                }
                 Element activeEle = mainDiv.addElement("center");
                 if (styleName.contains("标题")) {
                     activeEle = activeEle.addElement("h3");
@@ -147,18 +151,19 @@ public class WordConverter {
             } else {//正常文本
                 // 超链接
                 if (c.text().contains("HYPERLINK")) {
-                    // a标签不能做全包的 = =只能单独存在才行 这里怎么处理。。全部完成替换太扯
-                    CharacterRun link = paragraph.getCharacterRun(i + 2);
+                    i = i + 2; //跳到link的文本段
+                    CharacterRun link = paragraph.getCharacterRun(i);
                     String text = link.text().trim();
-                    // Element a = new DefaultElement("a");
-                    // a.addAttribute("href", link.text());
-                    // p.add(a);
-                    i = i + 1;
-                    continue;
+                    Element a = new DefaultElement("a");
+                    a.addAttribute("style", "font-family:Times New Roman;font-size:10pt;color: rgb(0,0,255);")
+                            .addElement("a")
+                            .addAttribute("href", text)
+                            .addText(text);
+                    p.add(a);
+                }else {
+                    Element span = processCharacterRun(c);
+                    p.add(span);
                 }
-
-                Element span = processCharacterRun(c);
-                p.add(span);
             }
         }
         mainDiv.add(p);
