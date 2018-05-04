@@ -78,7 +78,7 @@ public class WordConverter {
         Element head = html.addElement("head");
         Element body = html.addElement("body");
         HtmlUtil.charset(head);
-        HtmlUtil.title(head, doc.getSummaryInformation().getTitle());
+        HtmlUtil.title(head, doc.getSummaryInformation().getTitle() != null ? doc.getSummaryInformation().getTitle() : "");
 
         Element mainDiv = new DefaultElement("div");
         mainDiv.addAttribute("style", "width:75%");
