@@ -79,32 +79,32 @@ public class WordConverter {
         Element body = html.addElement("body");
         HtmlUtil.charset(head);
         HtmlUtil.title(head, doc.getSummaryInformation().getTitle() != null ? doc.getSummaryInformation().getTitle() : "");
+        processGeneralStyle(head);
 
-        Element mainDiv = new DefaultElement("div");
-        mainDiv.addAttribute("style", "width:75%");
+        Element mainDiv = new DefaultElement("div").addAttribute("id","mainDiv");
 
         // 初始化目录处理器
         TocHandler tocHandler = new TocHandler(doc);
         tocHandler.init();
 
-        int currentTableLevel = Integer.MIN_VALUE;
         // 开始处理每个字符
         for (int i = 0; i < range.numSections(); i++) {
             Section section = range.getSection(i);
-            processParagraphs(mainDiv, section, tocHandler, currentTableLevel);
+            processParagraphs(mainDiv, section, tocHandler);
         }
 
         Element toc = tocHandler.getToc(true);
         // 目录有内容才添加
-        if (StringUtils.isNotBlank(toc.getText())) {
+        if (StringUtils.isNotBlank(toc.getStringValue())) {
             body.add(toc);
         }
         body.add(mainDiv);
+        processScript(body);
 
         ResourceUtil.writeFile(outputPath + FilenameUtils.getBaseName(wordPath) + ".html", root.asXML());
     }
 
-    private void processParagraphs(Element mainDiv, Section section, TocHandler tocHandler, int currentTableLevel)
+    private void processParagraphs(Element mainDiv, Section section, TocHandler tocHandler)
             throws Exception {
         StyleSheet docStyleSheet = doc.getStyleSheet();
         int paragraphs = section.numParagraphs();
@@ -119,7 +119,7 @@ public class WordConverter {
             }
 
             // 处理表格
-            if (paragraph.isInTable() && paragraph.getTableLevel() != currentTableLevel) {
+            if (paragraph.isInTable()) {
                 Table table = section.getTable(paragraph);
                 Element tableEle = processTable(table);
                 mainDiv.add(tableEle);
@@ -168,11 +168,7 @@ public class WordConverter {
                     i = i + 2; //跳到link的文本段
                     CharacterRun link = paragraph.getCharacterRun(i);
                     String text = link.text().trim();
-                    Element a = new DefaultElement("a");
-                    a.addAttribute("style", "font-family:Times New Roman;font-size:10pt;color: rgb(0,0,255);")
-                            .addElement("a")
-                            .addAttribute("href", text)
-                            .addText(text);
+                    Element a = new DefaultElement("a").addAttribute("href", text).addText(text);
                     p.add(a);
                 } else {
                     Element span = processCharacterRun(c);
@@ -266,7 +262,7 @@ public class WordConverter {
     /**
      * 处理图片元素 图片缩放比例 图片裁剪大小
      */
-    private Element processPicture(CharacterRun cr) throws Exception {
+    private Element processPicture(CharacterRun cr) {
         // 提取图片
         Picture picture = picturesTable.extractPicture(cr, true);
 
@@ -332,5 +328,31 @@ public class WordConverter {
         }
 
         return imgDivEle;
+    }
+
+    /**
+     * 处理总的css样式 base.css
+     *
+     * @param head head元素
+     */
+    private void processGeneralStyle(Element head) {
+        Element css = head.addElement("link")
+                .addAttribute("href", "./static/base-word.css")
+                .addAttribute("rel", "stylesheet");
+    }
+
+    /**
+     * 处理脚本 base.script 和 jquery-3.3.1.min.js
+     */
+    private void processScript(Element body) {
+        Element jquery = body.addElement("script")
+                .addAttribute("src", "./static/jquery-3.3.1.min.js")
+                .addAttribute("type", "text/javascript")
+                .addText("1");
+
+        Element localScript = body.addElement("script")
+                .addAttribute("src", "./static/base-word.js")
+                .addAttribute("type", "text/javascript")
+                .addText("2");
     }
 }

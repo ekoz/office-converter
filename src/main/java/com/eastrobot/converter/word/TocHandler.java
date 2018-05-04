@@ -42,7 +42,7 @@ public class TocHandler {
         this.headNum = new int[headLevel];
         this.headList = new ArrayList<>(Arrays.asList("H1", "H2", "H3", "H4", "H5", "H6"));
         this.mainTextTitleList = new ArrayList<>(Arrays.asList("标题 1", "标题 2", "标题 3", "标题 4", "标题 5", "标题 6"));
-        tocElement.addAttribute("style", "position:fixed;right:0px;margin-top:50px;border:1px solid #000;overflow-y:auto;height:90%;width:25%");
+        tocElement.addAttribute("id", "tocNav");
     }
 
     public Element getToc(boolean hasConvertedOver) {

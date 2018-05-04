@@ -1,0 +1,5 @@
+/*sheet导航样式*/
+#tocNav {position:fixed;right:0px;margin-top:50px;border:1px solid #000;overflow-y:auto;height:90%;width:25%}
+#mainDiv {width:75%}
+
+a {font-family: Times New Roman, serif;font-size:10pt;color: rgb(0,0,255);text-decoration: none;}
