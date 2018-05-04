@@ -19,8 +19,7 @@ public class ResourceUtil {
      * @date 2018-03-26 11:46
      */
     public static String getFolder(String inputPath, String subPath) {
-        String folder = FilenameUtils.getFullPath(inputPath) + FilenameUtils.getBaseName(inputPath) + File.separator
-                + subPath;
+        String folder = FilenameUtils.getFullPath(inputPath) + FilenameUtils.getBaseName(inputPath) + File.separator + subPath;
 
         File file = new File(folder);
         if (!file.exists()) {
@@ -33,7 +32,7 @@ public class ResourceUtil {
     /**
      * 写入文件
      */
-    public static void writeFile(String outputFilePath, String content) throws Exception {
+    public static void writeFile(String outputFilePath, String content) {
         FileOutputStream fos = null;
         BufferedWriter bw = null;
         try {

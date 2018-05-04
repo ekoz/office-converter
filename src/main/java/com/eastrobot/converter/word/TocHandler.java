@@ -40,8 +40,8 @@ public class TocHandler {
 
     public void init() {
         this.headNum = new int[headLevel];
-        this.headList = new ArrayList<>(Arrays.asList("H1", "H2", "H3", "H4", "H5", "H6"));
-        this.mainTextTitleList = new ArrayList<>(Arrays.asList("标题 1", "标题 2", "标题 3", "标题 4", "标题 5", "标题 6"));
+        this.headList = new ArrayList<String>(Arrays.asList("H1", "H2", "H3", "H4", "H5", "H6"));
+        this.mainTextTitleList = new ArrayList<String>(Arrays.asList("标题 1", "标题 2", "标题 3", "标题 4", "标题 5", "标题 6"));
         tocElement.addAttribute("id", "tocNav");
     }
 

@@ -1,5 +1,6 @@
 package com.eastrobot.converter.word;
 
+import com.eastrobot.converter.base.AbstractConverter;
 import com.eastrobot.converter.util.HtmlUtil;
 import com.eastrobot.converter.util.OfficeUtil;
 import com.eastrobot.converter.util.ResourceUtil;
@@ -10,7 +11,6 @@ import org.apache.poi.hwpf.model.PicturesTable;
 import org.apache.poi.hwpf.model.StyleDescription;
 import org.apache.poi.hwpf.model.StyleSheet;
 import org.apache.poi.hwpf.usermodel.*;
-import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.tree.DefaultElement;
 import sun.misc.BASE64Encoder;
@@ -28,12 +28,7 @@ import static org.apache.poi.hwpf.converter.AbstractWordUtils.TWIPS_PER_PT;
  * @author <a href="yogurt_lei@foxmail.com">Yogurt_lei</a>
  * @version v1.0 , 2018-04-26 16:23
  */
-public class WordConverter {
-    /**
-     * 输入文件的绝对路径
-     */
-    private String wordPath;
-    private String outputPath;
+public class WordConverter extends AbstractConverter {
     /**
      * 文档
      */
@@ -47,22 +42,16 @@ public class WordConverter {
      */
     private PicturesTable picturesTable;
 
-    private Document root;
-
-    /**
-     * @param wordPath doc文档路径
-     * @param outputPath 输出文件路径
-     */
-    public WordConverter(String wordPath, String outputPath) {
-        this.wordPath = wordPath;
-        this.outputPath = outputPath;
+    public WordConverter(String inputFilePath, String outputPath) {
+        super(inputFilePath, outputPath);
     }
 
     /**
      * 准备环境
      */
+    @Override
     public WordConverter prepareEnv() throws Exception {
-        this.doc = OfficeUtil.loadDoc(new File(this.wordPath));
+        this.doc = OfficeUtil.loadDoc(new File(inputFilePath));
         this.range = doc.getRange();
         this.picturesTable = doc.getPicturesTable();
         this.root = HtmlUtil.createHtmlDocument();
@@ -73,7 +62,8 @@ public class WordConverter {
     /**
      * 转换方法 请先调用{@link  WordConverter#prepareEnv}
      */
-    public void convert() throws Exception {
+    @Override
+    public void startConvert() throws Exception {
         Element html = root.addElement("html");
         Element head = html.addElement("head");
         Element body = html.addElement("body");
@@ -101,7 +91,7 @@ public class WordConverter {
         body.add(mainDiv);
         processScript(body);
 
-        ResourceUtil.writeFile(outputPath + FilenameUtils.getBaseName(wordPath) + ".html", root.asXML());
+        ResourceUtil.writeFile(this.outputPath + FilenameUtils.getBaseName(this.inputFilePath) + ".html", root.asXML());
     }
 
     private void processParagraphs(Element mainDiv, Section section, TocHandler tocHandler)

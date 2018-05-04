@@ -1,5 +1,6 @@
 package com.eastrobot.converter.excel;
 
+import com.eastrobot.converter.base.AbstractConverter;
 import com.eastrobot.converter.util.HtmlUtil;
 import com.eastrobot.converter.util.OfficeUtil;
 import com.eastrobot.converter.util.ResourceUtil;
@@ -10,7 +11,6 @@ import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.formula.eval.ErrorEval;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.tree.DefaultElement;
 
@@ -23,29 +23,20 @@ import java.io.File;
  * @author <a href="yogurt_lei@foxmail.com">Yogurt_lei</a>
  * @version v1.0 , 2018-05-02 9:10
  */
-public class ExcelConverter {
-    private String excelPath;
-
-    private String outputPath;
-
-    private Document root;
+public class ExcelConverter extends AbstractConverter {
 
     private HSSFWorkbook workbook;
 
-    /**
-     * @param excelPath  输入xls文件绝对路径
-     * @param outputPath 输出html的文件路径
-     */
-    public ExcelConverter(String excelPath, String outputPath) {
-        this.excelPath = excelPath;
-        this.outputPath = outputPath;
+    public ExcelConverter(String inputFilePath, String outputPath) {
+        super(inputFilePath, outputPath);
     }
 
     /**
      * 准备环境
      */
+    @Override
     public ExcelConverter prepareEnv() throws Exception {
-        this.workbook = OfficeUtil.loadXls(new File(this.excelPath));
+        this.workbook = OfficeUtil.loadXls(new File(this.inputFilePath));
         this.root = HtmlUtil.createHtmlDocument();
 
         return this;
@@ -54,7 +45,8 @@ public class ExcelConverter {
     /**
      * 转换主方法
      */
-    public void convert() throws Exception {
+    @Override
+    public void startConvert() throws Exception {
         Element html = root.addElement("html");
         Element head = html.addElement("head");
         Element body = html.addElement("body");
@@ -76,7 +68,7 @@ public class ExcelConverter {
         body.add(sheet);
         processScript(body);
 
-        ResourceUtil.writeFile(outputPath + FilenameUtils.getBaseName(excelPath) + ".html", root.asXML());
+        ResourceUtil.writeFile(this.outputPath + FilenameUtils.getBaseName(this.inputFilePath) + ".html", root.asXML());
     }
 
     /**
