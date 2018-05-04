@@ -2,7 +2,7 @@ package com.eastrobot.converter.util;
 
 import org.apache.commons.io.FilenameUtils;
 
-import java.io.File;
+import java.io.*;
 
 /**
  * ResourceUtil
@@ -28,5 +28,29 @@ public class ResourceUtil {
         }
 
         return folder;
+    }
+
+    /**
+     * 写入文件
+     */
+    public static void writeFile(String outputFilePath, String content) throws Exception {
+        FileOutputStream fos = null;
+        BufferedWriter bw = null;
+        try {
+            fos = new FileOutputStream(outputFilePath);
+            bw = new BufferedWriter(new OutputStreamWriter(fos, "UTF-8"));
+            bw.append(content);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (bw != null)
+                    bw.close();
+                if (fos != null)
+                    fos.close();
+            } catch (IOException ie) {
+                ie.printStackTrace();
+            }
+        }
     }
 }

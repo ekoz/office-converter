@@ -1,8 +1,10 @@
 package com.eastrobot.converter.word;
 
-import com.eastrobot.converter.HtmlUtil;
+import com.eastrobot.converter.util.HtmlUtil;
+import com.eastrobot.converter.util.OfficeUtil;
 import com.eastrobot.converter.util.ResourceUtil;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.model.PicturesTable;
 import org.apache.poi.hwpf.model.StyleDescription;
@@ -11,8 +13,9 @@ import org.apache.poi.hwpf.usermodel.*;
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.tree.DefaultElement;
+import sun.misc.BASE64Encoder;
 
-import java.io.*;
+import java.io.File;
 
 import static org.apache.poi.hwpf.converter.AbstractWordUtils.TWIPS_PER_INCH;
 import static org.apache.poi.hwpf.converter.AbstractWordUtils.TWIPS_PER_PT;
@@ -30,6 +33,7 @@ public class WordConverter {
      * 输入文件的绝对路径
      */
     private String wordPath;
+    private String outputPath;
     /**
      * 文档
      */
@@ -45,19 +49,25 @@ public class WordConverter {
 
     private Document root;
 
-    public WordConverter(String wordPath) {
+    /**
+     * @param wordPath doc文档路径
+     * @param outputPath 输出文件路径
+     */
+    public WordConverter(String wordPath, String outputPath) {
         this.wordPath = wordPath;
+        this.outputPath = outputPath;
     }
 
     /**
      * 准备环境
      */
-    public void prepareEnv() throws Exception {
-        this.doc = new HWPFDocument(new FileInputStream(wordPath));
+    public WordConverter prepareEnv() throws Exception {
+        this.doc = OfficeUtil.loadDoc(new File(this.wordPath));
         this.range = doc.getRange();
         this.picturesTable = doc.getPicturesTable();
-
         this.root = HtmlUtil.createHtmlDocument();
+
+        return this;
     }
 
     /**
@@ -85,9 +95,13 @@ public class WordConverter {
         }
 
         Element toc = tocHandler.getToc(true);
-        body.add(toc);
+        // 目录有内容才添加
+        if (StringUtils.isNotBlank(toc.getText())) {
+            body.add(toc);
+        }
         body.add(mainDiv);
-        writeFile(root.asXML());
+
+        ResourceUtil.writeFile(outputPath + FilenameUtils.getBaseName(wordPath) + ".html", root.asXML());
     }
 
     private void processParagraphs(Element mainDiv, Section section, TocHandler tocHandler, int currentTableLevel)
@@ -160,7 +174,7 @@ public class WordConverter {
                             .addAttribute("href", text)
                             .addText(text);
                     p.add(a);
-                }else {
+                } else {
                     Element span = processCharacterRun(c);
                     p.add(span);
                 }
@@ -291,9 +305,8 @@ public class WordConverter {
             cropBottom = picture.getDyaCropBottom() / TWIPS_PER_INCH;
         }
 
-        String originFullNameName = ResourceUtil.getFolder(wordPath, "images") + picture.suggestFullFileName();
-        picture.writeImageContent(new FileOutputStream(originFullNameName));
-
+        BASE64Encoder encoder = new BASE64Encoder();
+        String base64Img = "data:image/jpeg;base64," + encoder.encode(picture.getContent());
 
         Element imgDivEle = new DefaultElement("div");
         if (cropTop != 0 || cropRight != 0 || cropBottom != 0 || cropLeft != 0) {
@@ -310,40 +323,14 @@ public class WordConverter {
                     ";top:-" + cropTop +
                     ";width:" + imageWidth + "in" +
                     ";height:" + imageHeight + "in;")
-                    .addAttribute("src", originFullNameName);
+                    .addAttribute("src", base64Img);
         } else {
             imgDivEle.addElement("img")
                     .addAttribute("style", "width:" + imageWidth + "in;height:" + imageHeight + "in;" +
                             "vertical-align:text-bottom;")
-                    .addAttribute("src", originFullNameName);
+                    .addAttribute("src", base64Img);
         }
 
         return imgDivEle;
-    }
-
-    /**
-     * 写入文件
-     */
-    private void writeFile(String content) {
-        FileOutputStream fos = null;
-        BufferedWriter bw = null;
-        content = content.replaceAll("EMBED", "").replaceAll("Equation.DSMT4", "") + "</div></div></body></word>";
-        try {
-            String baseName = FilenameUtils.getBaseName(wordPath);
-            fos = new FileOutputStream(ResourceUtil.getFolder(wordPath, "") + baseName + ".html");
-            bw = new BufferedWriter(new OutputStreamWriter(fos, "utf-8"));
-            bw.append(content);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (bw != null)
-                    bw.close();
-                if (fos != null)
-                    fos.close();
-            } catch (IOException ie) {
-                ie.printStackTrace();
-            }
-        }
     }
 }
