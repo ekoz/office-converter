@@ -15,6 +15,10 @@ import org.dom4j.Element;
 import org.dom4j.tree.DefaultElement;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * ExcelConverter office excel转html (xls)
@@ -93,24 +97,91 @@ public class ExcelConverter extends AbstractConverter {
         boolean isFirstSheet = true;
         for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
             HSSFSheet sheet = workbook.getSheetAt(i);
-            Element sheetDiv = processSheet(sheet);
-            sheetDiv.addAttribute("id", sheet.getSheetName());
+            processAllPicture(sheet);
 
-            Element li = new DefaultElement("li").addText(sheet.getSheetName());
-            // excel中sheet名称是唯一的
-            sheetNav.add(li);
-            // 默认第一个sheet激活
-            if (isFirstSheet) {
-                li.addAttribute("class", "menu-active");
-                isFirstSheet = false;
-            } else {
-                // 其他的sheet先隐藏
-                sheetDiv.addAttribute("style", "display:none");
-            }
-
-            li.addAttribute("_id", sheet.getSheetName());
-            mainDiv.add(sheetDiv);
+            // Element sheetDiv = processSheet(sheet);
+            // if (StringUtils.isNotBlank(sheetDiv.getStringValue().trim())) {
+            //     sheetDiv.addAttribute("id", sheet.getSheetName());
+            //
+            //     Element li = new DefaultElement("li").addText(sheet.getSheetName());
+            //     // excel中sheet名称是唯一的
+            //     sheetNav.add(li);
+            //     // 默认第一个sheet激活
+            //     if (isFirstSheet) {
+            //         li.addAttribute("class", "menu-active");
+            //         isFirstSheet = false;
+            //     } else {
+            //         // 其他的sheet先隐藏
+            //         sheetDiv.addAttribute("style", "display:none");
+            //     }
+            //
+            //     li.addAttribute("_id", sheet.getSheetName());
+            //     mainDiv.add(sheetDiv);
+            // }
         }
+    }
+
+    /**
+     * 处理所有表格内嵌的图形对象
+     */
+    private Map<String, List<HSSFPictureData>> processAllPicture(HSSFSheet sheet) {
+        Map<String, List<HSSFPictureData>> dataMap = new HashMap<String, List<HSSFPictureData>>();
+
+        // TODO by Yogurt_lei :  判断非空
+        HSSFPatriarch hssfPatriarch = sheet.getDrawingPatriarch();
+        List<HSSFShape> shapeList = hssfPatriarch.getChildren();
+
+        for (HSSFShape shape : shapeList) {
+            List<HSSFPictureData> pictureDataList = null;
+
+            if (shape instanceof HSSFPicture) {
+                HSSFPicture picture = (HSSFPicture) shape;
+                //获取图片数据
+                HSSFPictureData pictureData = picture.getPictureData();
+                //获取图片定位
+                if (picture.getAnchor() instanceof HSSFClientAnchor) {
+                    HSSFClientAnchor anchor = (HSSFClientAnchor) picture.getAnchor();
+                    //获取图片所在行作为key值,插入图片时，默认图片只占一行的单个格子，不能超出格子边界
+                    int row1 = anchor.getRow1();
+                    String rowNum = String.valueOf(row1);
+
+                    if (dataMap.get(rowNum) != null) {
+                        pictureDataList = dataMap.get(rowNum);
+                    } else {
+                        pictureDataList = new ArrayList<HSSFPictureData>();
+                    }
+                    pictureDataList.add(pictureData);
+                    dataMap.put(rowNum, pictureDataList);
+                    // 测试部分
+                    int row2 = anchor.getRow2();
+                    short col1 = anchor.getCol1();
+                    short col2 = anchor.getCol2();
+                    int dx1 = anchor.getDx1();
+                    int dx2 = anchor.getDx2();
+                    int dy1 = anchor.getDy1();
+                    int dy2 = anchor.getDy2();
+
+                    System.out.println("row1: " + row1 + " , row2: " + row2 + " , col1: " + col1 + " , col2: " + col2);
+                    System.out.println("dx1: " + dx1 + " , dx2: " + dx2 + " , dy1: " + dy1 + " , dy2: " + dy2);
+                }
+            }
+        }
+
+        System.out.println("********图片数量明细 START********");
+        int t = 0;
+        if (dataMap != null) {
+            t = dataMap.keySet().size();
+        }
+        if (t > 0) {
+            for (String key : dataMap.keySet()) {
+                System.out.println("第 " + key + " 行， 有图片： " + dataMap.get(key).size() + " 张");
+            }
+        } else {
+            System.out.println("Excel表中没有图片!");
+        }
+        System.out.println("********图片数量明细 END ********");
+
+        return dataMap;
     }
 
     /**
@@ -181,6 +252,13 @@ public class ExcelConverter extends AbstractConverter {
 
         String value;
         switch (cell.getCellType()) {
+            case HSSFCell.CELL_TYPE_NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    value = String.valueOf(String.valueOf(cell.getDateCellValue()));
+                } else {
+                    value = String.valueOf(cell.getNumericCellValue());
+                }
+                break;
             case HSSFCell.CELL_TYPE_STRING:
                 value = cell.getRichStringCellValue().getString();
                 break;
@@ -189,13 +267,6 @@ public class ExcelConverter extends AbstractConverter {
                 evaluator.evaluateFormulaCell(cell);
                 CellValue cellValue = evaluator.evaluate(cell);
                 value = String.valueOf(cellValue.getNumberValue());
-                break;
-            case HSSFCell.CELL_TYPE_NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    value = String.valueOf(String.valueOf(cell.getDateCellValue()));
-                } else {
-                    value = String.valueOf(cell.getNumericCellValue());
-                }
                 break;
             case HSSFCell.CELL_TYPE_BOOLEAN:
                 value = String.valueOf(cell.getBooleanCellValue());
@@ -261,7 +332,7 @@ public class ExcelConverter extends AbstractConverter {
 
     // 构建单元格边框样式
     private void buildStyleBorder(HSSFWorkbook workbook, StringBuilder style, String type, short xlsBorder,
-                                         short borderColor) {
+                                  short borderColor) {
         if (xlsBorder == HSSFCellStyle.BORDER_NONE) {
             return;
         }
