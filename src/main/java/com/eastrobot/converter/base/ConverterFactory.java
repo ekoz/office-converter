@@ -20,6 +20,9 @@ public class ConverterFactory {
             case WORD:
                 converter = new WordConverter(inputFilePath, outputPath);
                 break;
+            case WORDX:
+            	//TODO 增加 WordxConverter 方法
+            	converter = new WordConverter(inputFilePath, outputPath);
             case EXCEL:
                 converter = new ExcelConverter(inputFilePath, outputPath);
                 break;

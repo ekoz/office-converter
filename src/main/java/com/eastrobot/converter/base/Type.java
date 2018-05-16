@@ -12,11 +12,23 @@ public enum Type {
      */
     WORD,
     /**
+     * for docx
+     */
+    WORDX,
+    /**
      * for xls
      */
     EXCEL,
     /**
+     * for xlsx
+     */
+    EXCELX,
+    /**
      * for ppt
      */
-    POWERPOINT;
+    POWERPOINT,
+    /**
+     * for pptx
+     */
+    POWERPOINTX;
 }

@@ -25,6 +25,9 @@ public class HtmlUtil {
         head.addElement("meta")
                 .addAttribute("http-equiv", "Content-Type")
                 .addAttribute("content", "text/html; charset=utf-8");
+        head.addElement("meta")
+        		.addAttribute("name", "viewport")
+        		.addAttribute("content", "width=device-width, initial-scale=1");
     }
 
     /**

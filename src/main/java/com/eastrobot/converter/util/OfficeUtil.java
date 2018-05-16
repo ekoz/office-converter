@@ -3,6 +3,7 @@ package com.eastrobot.converter.util;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.util.IOUtils;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,5 +39,21 @@ public class OfficeUtil {
         } finally {
             IOUtils.closeQuietly(inputStream);
         }
+    }
+    
+    /**
+     * 加载 docx 对象
+     * @author eko.zhan at 2018年5月16日 下午12:04:34
+     * @param docFile
+     * @return
+     * @throws IOException
+     */
+    public static XWPFDocument loadDocx(File docFile) throws IOException {
+    	final FileInputStream inputStream = new FileInputStream(docFile);
+    	try {
+			return new XWPFDocument(inputStream);
+		} finally {
+			IOUtils.closeQuietly(inputStream);
+		}
     }
 }
